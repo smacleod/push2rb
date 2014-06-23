@@ -4,7 +4,8 @@ from rbtools.api.client import RBClient
 from rbtools.api.errors import APIError
 
 
-def post_reviews(url, username, password, repo, identifier, commits):
+def post_reviews(url, repoid, identifier, commits, username=None, password=None,
+                 userid=None, cookie=None):
     """Post a set of commits to Review Board.
 
     Repository hooks can use this function to post a set of pushed commits
@@ -18,24 +19,35 @@ def post_reviews(url, username, password, repo, identifier, commits):
     set of diffs from a new push. Generally this identifier will represent
     some unit of work, such as a bug.
 
-    The `commits` argument ... TODO: Define the commits argument.
+    The `commits` argument takes the following form:
 
         {
-
+            'squashed': {
+                'diff': <squashed-diff-string>,
+            },
+            'individual': [
+                {
+                    'id': <commit-id>,
+                    'rid': <previus-review-request-id>,
+                    'message': <commit-message>,
+                    'diff': <diff>,
+                    'parent_diff': <diff-from-base-to-commit>,
+                },
+                {
+                    ...
+                },
+                ...
+            ]
         }
     """
     rbc = RBClient(url, username=username, password=password)
-    try:
-        api_root = rbc.get_root()
-    except APIError as ex:
-        return (1, "ERROR: Could not contact the Review Board server - %s" % ex)
-
+    api_root = rbc.get_root()
 
     # Retrieve the squashed review request or create it.
     previous_commits = []
     squashed_rr = None
     rrs = api_root.get_review_requests(commit_id=identifier,
-                                       repository=repo)
+                                       repository=repoid)
 
     if rrs.total_results > 0:
         squashed_rr = rrs[0]
@@ -48,7 +60,7 @@ def post_reviews(url, username, password, repo, identifier, commits):
             "extra_data.p2rb.is_squashed": "True",
             "extra_data.p2rb.identifier": identifier,
             "commit_id": identifier,
-            "repository": repo,
+            "repository": repoid,
         }
         squashed_rr = rrs.create(data=data)
 
@@ -103,7 +115,7 @@ def post_reviews(url, username, password, repo, identifier, commits):
                 "extra_data.p2rb.is_squashed": "False",
                 "extra_data.p2rb.identifier": identifier,
                 "commit_id": commit["id"],
-                "repository": repo,
+                "repository": repoid,
             }
 
             rr = rrs.create(data=data)
@@ -157,4 +169,3 @@ def get_previous_commits(squashed_rr):
         extra_data["p2rb.commits"] if "p2rb.commits" in extra_data else "[]")
     print commits
     return json.loads(commits)
-
