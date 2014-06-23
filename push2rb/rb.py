@@ -81,7 +81,7 @@ def post_reviews(url, username, password, repo, identifier, commits):
         if pcid is not None and commit is not None:
             # We have a previous commit and a new commit to
             # update it with.
-            rr = rrs.get_review_request(review_request_id=rid)
+            rr = api_root.get_review_request(review_request_id=rid)
             draft = rr.get_or_create_draft(**{
                 "commit_id": commit["id"],
                 "summary": commit['message'].rsplit("\n", 1)[0],
@@ -93,6 +93,7 @@ def post_reviews(url, username, password, repo, identifier, commits):
         elif pcid is not None and commit is None:
             # We have a previous commit but no new commit. We need
             # to discard this now-unused review request.
+            rr = api_root.get_review_request(review_request_id=rid)
             rr.update(status="discarded")
         else:
             # There is no previous commit so we need to create one
@@ -129,10 +130,10 @@ def post_reviews(url, username, password, repo, identifier, commits):
 
     squashed_draft = squashed_rr.get_or_create_draft(**{
         "summary": "Review for review ID: %s" % identifier,
-        "description": "\n".join(squashed_description),
+        "description": "%s\n" % ("\n".join(squashed_description)),
         "depends_on": ",".join([str(rr.id) for rr in draft_rrs]),
     })
-    squashed_rr.upate(data={
+    squashed_rr.update(data={
         "extra_data.p2rb.commits": json.dumps([
             (draft.commit_id, draft.id) for draft in draft_rrs
         ])})
