@@ -25,7 +25,6 @@ def post_reviews(url, username, password, repo, identifier, commits):
         }
     """
     rbc = RBClient(url, username=username, password=password)
-
     try:
         api_root = rbc.get_root()
     except APIError as ex:
@@ -57,18 +56,6 @@ def post_reviews(url, username, password, repo, identifier, commits):
 
     previous_commits = get_previous_commits(squashed_rr)
 
-
-    # for commit in individuals:
-    #     rr = commit.get('rr', None)
-    #     if rr is not None and 'id' not in commit:
-    #         # This commit no longer has a review request and must be
-    #         # discarded.
-    #         rr.
-
-
-
-
-
     # Create/update the individual commit review requests. Currently
     # we will update them in push order, with no thought to history
     # rewrites which reordered, squashed, or deleted commits.
@@ -94,8 +81,14 @@ def post_reviews(url, username, password, repo, identifier, commits):
         if pcid is not None and commit is not None:
             # We have a previous commit and a new commit to
             # update it with.
-            rr = update_or_create_commit_rr(api_root, commit, rid=rid,
-                                            pcid=pcid)
+            rr = rrs.get_review_request(review_request_id=rid)
+            draft = rr.get_or_create_draft(**{
+                "commit_id": commit["id"],
+                "summary": commit['message'].rsplit("\n", 1)[0],
+                "description": commit['message'],
+            })
+            rr.get_diffs().upload_diff(commit["diff"],
+                                       parent_diff=commit["parent_diff"])
 
         elif pcid is not None and commit is None:
             # We have a previous commit but no new commit. We need
@@ -164,5 +157,3 @@ def get_previous_commits(squashed_rr):
     print commits
     return json.loads(commits)
 
-
-#
