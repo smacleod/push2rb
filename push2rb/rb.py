@@ -58,6 +58,17 @@ def post_reviews(url, username, password, repo, identifier, commits):
     previous_commits = get_previous_commits(squashed_rr)
 
 
+    # for commit in individuals:
+    #     rr = commit.get('rr', None)
+    #     if rr is not None and 'id' not in commit:
+    #         # This commit no longer has a review request and must be
+    #         # discarded.
+    #         rr.
+
+
+
+
+
     # Create/update the individual commit review requests. Currently
     # we will update them in push order, with no thought to history
     # rewrites which reordered, squashed, or deleted commits.
@@ -89,7 +100,7 @@ def post_reviews(url, username, password, repo, identifier, commits):
         elif pcid is not None and commit is None:
             # We have a previous commit but no new commit. We need
             # to discard this now-unused review request.
-            pass
+            rr.update(status="discarded")
         else:
             # There is no previous commit so we need to create one
             # from scratch.
@@ -127,10 +138,11 @@ def post_reviews(url, username, password, repo, identifier, commits):
         "summary": "Review for review ID: %s" % identifier,
         "description": "\n".join(squashed_description),
         "depends_on": ",".join([str(rr.id) for rr in draft_rrs]),
+    })
+    squashed_rr.upate(data={
         "extra_data.p2rb.commits": json.dumps([
             (draft.commit_id, draft.id) for draft in draft_rrs
-        ]),
-    })
+        ])})
 
     return squashed_rr.id, reviewmap
 
@@ -153,31 +165,4 @@ def get_previous_commits(squashed_rr):
     return json.loads(commits)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #
-
-
-
-
